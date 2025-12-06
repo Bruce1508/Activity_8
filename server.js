@@ -151,8 +151,19 @@ async function startServer() {
         console.log("Please resolve these errors and try again.")
     }
 }
-// +++ 6. Execute the function
-startServer()
+// +++ 6. Kết nối MongoDB
+// Trên Vercel: chỉ connect DB, không listen port
+// Local: connect DB và listen port
+if (process.env.VERCEL) {
+    mongoose.connect(process.env.MONGODB_URI)
+        .then(() => console.log("Connected to MongoDB"))
+        .catch(err => console.log("MongoDB connection error:", err))
+} else {
+    startServer()
+}
+
+// Export app cho Vercel serverless
+module.exports = app
 
 
 
