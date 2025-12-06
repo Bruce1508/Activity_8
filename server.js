@@ -2,11 +2,12 @@ const HTTP_PORT = process.env.PORT || 8080;
 
 const express = require("express");
 const app = express();
-app.use(express.static("public"));  // css files
+app.use(express.static(__dirname + '/public'))  // css files
 app.set("view engine", "ejs");      //ejs
+app.set('views', __dirname + '/views')
 app.use(express.urlencoded({ extended: true })); //forms
 
-require("dotenv").config()   
+require("dotenv").config()
 
 // +++ 2. Required!
 const mongoose = require('mongoose')
@@ -16,50 +17,50 @@ const mongoose = require('mongoose')
 // what a document in the departments collection looks like (structure)
 // property name: data type
 const deptSchema = new mongoose.Schema({
-   name:String,
-   location:String
+    name: String,
+    location: String
 })
 const Dept = new mongoose.model("departments", deptSchema)
 
 
 const employeeSchema = new mongoose.Schema({
-   name:String,
-   isManager:Boolean,
-   hourlyRate:Number,
-   // refernece to a documetn in the departments collection
-   dept:{ type: mongoose.Schema.Types.ObjectId, ref: "departments" }
+    name: String,
+    isManager: Boolean,
+    hourlyRate: Number,
+    // refernece to a documetn in the departments collection
+    dept: { type: mongoose.Schema.Types.ObjectId, ref: "departments" }
 })
 const Employee = new mongoose.model("employees", employeeSchema)
 
 
 const session = require('express-session')
 app.use(session({
-   secret: "the quick brown fox jumped over the lazy dog 1234567890",  // random string, used for configuring the session
-   resave: false,
-   saveUninitialized: true
+    secret: "the quick brown fox jumped over the lazy dog 1234567890",  // random string, used for configuring the session
+    resave: false,
+    saveUninitialized: true
 }))
 
 // -------------------------------------------------------
 // ENDPOINTS
 // -------------------------------------------------------
-app.get("/", async (req, res) => {    
-    console.log(req.sessionID)    
+app.get("/", async (req, res) => {
+    console.log(req.sessionID)
     // return res.send(`Session id is: ${req.sessionID}`)
     return res.render("home.ejs")
 })
 
-app.get("/employees", async (req,res)=>{
-    const results = 
+app.get("/employees", async (req, res) => {
+    const results =
         await Employee.find().populate("dept")
-    return res.render("employees.ejs", {empList:results})        
+    return res.render("employees.ejs", { empList: results })
 })
 
 // show the Add Employee Form
-app.get("/employees/add", async (req,res)=>{
+app.get("/employees/add", async (req, res) => {
     const results = await Dept.find()
-    return res.render("add.ejs", {depts:results})
+    return res.render("add.ejs", { depts: results })
 })
-app.post("/employees/insert", async (req,res)=>{
+app.post("/employees/insert", async (req, res) => {
 
     // convert the checkbox to a boolean
     let managerStatus = false
@@ -71,7 +72,7 @@ app.post("/employees/insert", async (req,res)=>{
 
     await Employee.create({
         name: req.body.txtName,
-        isManager:managerStatus,
+        isManager: managerStatus,
         // convert the form value to a number
         hourlyRate: parseFloat(req.body.txtHourlyRate),
         // you can pass the id of the department document here
@@ -83,8 +84,8 @@ app.post("/employees/insert", async (req,res)=>{
 })
 
 // remove someone from a department
-app.get("/remove/:docId", async (req,res)=>{    
-    await Employee.findByIdAndUpdate(req.params.docId, { $unset: {dept:""}})
+app.get("/remove/:docId", async (req, res) => {
+    await Employee.findByIdAndUpdate(req.params.docId, { $unset: { dept: "" } })
     return res.redirect("/employees")
 })
 
@@ -95,20 +96,20 @@ const populateDatabase = async () => {
     const count = await Dept.countDocuments()
 
     if (count === 0) {
-        const marketingDept = await Dept.create({name:"Marketing", location:"Vancouver"})    
-        const salesDept = await Dept.create({name:"Sales", location:"Montreal"})    
-        const engineeringDept = await Dept.create({name:"Engineering", location:"Toronto"})    
+        const marketingDept = await Dept.create({ name: "Marketing", location: "Vancouver" })
+        const salesDept = await Dept.create({ name: "Sales", location: "Montreal" })
+        const engineeringDept = await Dept.create({ name: "Engineering", location: "Toronto" })
 
         // bcause a need that reference to assign a dept to an employee
         await Employee.insertMany([
-           { name: 'Max', isManager: true, hourlyRate:99.99, dept:salesDept},
-           { name: 'Nyasha', isManager: true, hourlyRate:125.00, dept:engineeringDept },
-           { name: 'Otto', isManager: false, hourlyRate:200.00 },
-           { name: 'Pauline', isManager: false, hourlyRate:5100.00},          
-       ]);
+            { name: 'Max', isManager: true, hourlyRate: 99.99, dept: salesDept },
+            { name: 'Nyasha', isManager: true, hourlyRate: 125.00, dept: engineeringDept },
+            { name: 'Otto', isManager: false, hourlyRate: 200.00 },
+            { name: 'Pauline', isManager: false, hourlyRate: 5100.00 },
+        ]);
 
-       // Employee
-        await Employee.create({name:"Rudy", isManager:false, hourlyRate:100, dept:marketingDept})    
+        // Employee
+        await Employee.create({ name: "Rudy", isManager: false, hourlyRate: 100, dept: marketingDept })
 
         console.log("Employees and depts created")
 
@@ -116,13 +117,13 @@ const populateDatabase = async () => {
     } else {
         console.log("ERROR:Dept collection already has data, so skipping")
     }
- 
+
 }
 
 
 // +++  5. Create a function that connects to the database BEFORE starting the Express web server.
-async function startServer() {    
-    try {    
+async function startServer() {
+    try {
 
         // +++ 5a. Attempt to connnect to the database using the database connection information you defined in step #2
         await mongoose.connect(process.env.MONGODB_URI)
@@ -135,15 +136,15 @@ async function startServer() {
 
         // +++ 5c.  If db connection successful, output success messages. If fail, go to 5d.
         console.log("SUCCESS connecting to MONGO database")
-        console.log("STARTING Express web server")        
-        
+        console.log("STARTING Express web server")
+
         // +++ 5d.  At this point, db connection should be successful, so start the web server!
-        app.listen(HTTP_PORT, () => {     
-            console.log(`server listening on: http://localhost:${HTTP_PORT}`) 
-        })    
+        app.listen(HTTP_PORT, () => {
+            console.log(`server listening on: http://localhost:${HTTP_PORT}`)
+        })
     }
     // +++ 5d. The catch block executes if the app fails to connect to the database     
-    catch (err) {        
+    catch (err) {
         console.log("ERROR: connecting to MONGO database")
         // +++ 5e. Output the specific error message
         console.log(err)
